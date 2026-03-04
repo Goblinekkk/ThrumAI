@@ -1,4 +1,4 @@
-const MASTER_KEY = "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"; 
+const MASTER_KEY = "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"; 
 let currentModel = "llama-3.3-70b-versatile";
 let currentLang = "cs";
 let isFirstMessage = true;
