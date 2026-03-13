@@ -1,0 +1,23 @@
+name: Deploy Thrum AI
+on:
+  push:
+    branches: ["main"] # nebo název vaší hlavní větve
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Inject API Key
+        run: |
+          # Tento příkaz nahradí text REPLACE_ME_WITH_API_KEY skutečným klíčem ze Secrets
+          sed -i "s/REPLACE_ME_WITH_API_KEY/${{ secrets.ZENTRIX_AI_API }}/g" script.js
+
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: . # Složka, kde máte index.html
+          branch: gh-pages # Web se nahraje do této větve
+
