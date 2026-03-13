@@ -2,7 +2,7 @@
  * DŮLEŽITÉ: Na GitHubu uložte klíč do GitHub Secrets pod názvem ZENTRIX_AI_API.
  * Pro lokální testování můžete klíč vložit sem, ale soubor PŘIDEJTE DO .GITIGNORE!
  */
-const ZENTRIX_AI_API = ""; // Zde klíč nechte prázdný pro GitHub
+const ZENTRIX_AI_API = "REPLACE_ME_WITH_API_KEY";
 
 let currentModel = "llama-3.3-70b-versatile";
 let currentLang = "cs";
