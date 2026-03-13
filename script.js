@@ -1,4 +1,9 @@
-const MASTER_KEY = "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"; 
+/**
+ * DŮLEŽITÉ: Na GitHubu uložte klíč do GitHub Secrets pod názvem ZENTRIX_AI_API.
+ * Pro lokální testování můžete klíč vložit sem, ale soubor PŘIDEJTE DO .GITIGNORE!
+ */
+const ZENTRIX_AI_API = ""; // Zde klíč nechte prázdný pro GitHub
+
 let currentModel = "llama-3.3-70b-versatile";
 let currentLang = "cs";
 let isFirstMessage = true;
@@ -24,8 +29,8 @@ function switchLang(l) {
     document.getElementById('lang' + l.toUpperCase()).classList.add('active');
     
     const translations = {
-        cs: { title: "Co dnes vytvoříme?", input: "Napiš zprávu...", hist: "Knihovna", new: "+ Nový chat", clear: "Smazat historii", thinking: "Luvyx přemýšlí..." },
-        en: { title: "What shall we create?", input: "Type a message...", hist: "Library", new: "+ New chat", clear: "Clear history", thinking: "Luvyx thinking..." }
+        cs: { title: "Co dnes vytvoříme?", input: "Napiš zprávu...", hist: "Knihovna", new: "+ Nový chat", clear: "Smazat historii", thinking: "Thrum přemýšlí..." },
+        en: { title: "What shall we create?", input: "Type a message...", hist: "Library", new: "+ New chat", clear: "Clear history", thinking: "Thrum is thinking..." }
     };
 
     const t = translations[l];
@@ -49,6 +54,13 @@ function scrollToBottom() {
 async function sendMessage() {
     const inputField = document.getElementById('userInput');
     const text = inputField.value.trim();
+    
+    // Kontrola klíče
+    if (!ZENTRIX_AI_API) {
+        alert("Chybí API klíč! Nastavte ZENTRIX_AI_API v kódu nebo prostředí.");
+        return;
+    }
+
     if (!text) return;
 
     if (isFirstMessage) {
@@ -61,16 +73,19 @@ async function sendMessage() {
     inputField.value = "";
     inputField.style.height = 'auto';
     
-    const aiBubble = addBubble(currentLang === 'cs' ? "Luvyx přemýšlí..." : "Luvyx thinking...", 'ai');
+    const aiBubble = addBubble(currentLang === 'cs' ? "Thrum přemýšlí..." : "Thrum is thinking...", 'ai');
     scrollToBottom();
 
     try {
         const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
             method: "POST",
-            headers: { "Authorization": `Bearer ${MASTER_KEY}`, "Content-Type": "application/json" },
+            headers: { 
+                "Authorization": `Bearer ${ZENTRIX_AI_API}`, 
+                "Content-Type": "application/json" 
+            },
             body: JSON.stringify({
                 messages: [
-                    {role: "system", content: currentLang === 'cs' ? "Jsi Luvyx AI. Odpověz česky, krátce a k věci." : "You are Luvyx AI. Be concise."},
+                    {role: "system", content: currentLang === 'cs' ? "Jsi Thrum AI. Odpovídej česky, stručně a inteligentně." : "You are Thrum AI. Be concise and smart."},
                     {role: "user", content: text}
                 ],
                 model: currentModel
@@ -80,7 +95,7 @@ async function sendMessage() {
         aiBubble.innerText = data.choices[0].message.content;
         scrollToBottom();
     } catch (e) { 
-        aiBubble.innerText = "Chyba připojení k mozku Luvyx."; 
+        aiBubble.innerText = "Chyba: Nepodařilo se spojit s jádrem Thrum."; 
     }
 }
 
@@ -104,24 +119,24 @@ document.querySelectorAll('.model-btn').forEach(btn => {
 
 // Historie Logic
 function updateHistory(text) {
-    let history = JSON.parse(localStorage.getItem('luvyx_v2_hist') || '[]');
+    let history = JSON.parse(localStorage.getItem('thrum_hist') || '[]');
     const title = text.substring(0, 20) + (text.length > 20 ? "..." : "");
     if(!history.includes(title)) {
         history.unshift(title);
-        localStorage.setItem('luvyx_v2_hist', JSON.stringify(history.slice(0, 12)));
+        localStorage.setItem('thrum_hist', JSON.stringify(history.slice(0, 12)));
         renderHistory();
     }
 }
 
 function renderHistory() {
     const list = document.getElementById('chatHistoryList');
-    const history = JSON.parse(localStorage.getItem('luvyx_v2_hist') || '[]');
+    const history = JSON.parse(localStorage.getItem('thrum_hist') || '[]');
     list.innerHTML = history.map(h => `<div class="hist-item" style="padding:15px 12px; border-bottom:1px solid #f4f4f5; font-size:0.85rem; color:#666; cursor:pointer;">${h}</div>`).join('');
 }
 
 document.getElementById('clearAllBtn').onclick = () => {
     if(confirm(currentLang === 'cs' ? "Opravdu smazat historii?" : "Clear all history?")) {
-        localStorage.removeItem('luvyx_v2_hist');
+        localStorage.removeItem('thrum_hist');
         renderHistory();
     }
 };
@@ -133,3 +148,4 @@ document.getElementById('userInput').oninput = function() { this.style.height = 
 document.getElementById('userInput').onkeydown = (e) => { if(e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } };
 
 renderHistory();
+
