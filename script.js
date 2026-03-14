@@ -1,10 +1,9 @@
 /**
  * Thrum AI - script.js
- * Zabezpečená verze pro GitHub Pages (využívá localStorage pro API klíč)
+ * Verze s připojením na Hugging Face Proxy
  */
 
-// Načtení klíče z paměti prohlížeče
-let ZENTRIX_AI_API = localStorage.getItem('groq_key') || "";
+const PROXY_URL = "https://matydev-thrum-proxy.hf.space/chat";
 
 let currentModel = "llama-3.3-70b-versatile";
 let currentLang = "cs";
@@ -57,21 +56,6 @@ async function sendMessage() {
     const inputField = document.getElementById('userInput');
     const text = inputField.value.trim();
     
-    // Kontrola klíče - pokud není, zeptáme se uživatele
-    if (!ZENTRIX_AI_API || ZENTRIX_AI_API.length < 10) {
-        const userKey = prompt(currentLang === 'cs' 
-            ? "Vlož svůj Groq API klíč (zůstane bezpečně jen ve tvém mobilu):" 
-            : "Enter your Groq API key (stored locally only):");
-        
-        if (userKey && userKey.startsWith("gsk_")) {
-            ZENTRIX_AI_API = userKey;
-            localStorage.setItem('groq_key', userKey);
-        } else {
-            alert(currentLang === 'cs' ? "Neplatný klíč!" : "Invalid key!");
-            return;
-        }
-    }
-
     if (!text) return;
 
     if (isFirstMessage) {
@@ -88,10 +72,9 @@ async function sendMessage() {
     scrollToBottom();
 
     try {
-        const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        const res = await fetch(PROXY_URL, {
             method: "POST",
             headers: { 
-                "Authorization": `Bearer ${ZENTRIX_AI_API}`, 
                 "Content-Type": "application/json" 
             },
             body: JSON.stringify({
@@ -103,21 +86,19 @@ async function sendMessage() {
             })
         });
 
-        if (!res.ok) {
-            const err = await res.json();
-            throw new Error(err.error?.message || "API Error");
-        }
+        if (!res.ok) throw new Error("Server neodpovídá");
 
         const data = await res.json();
+        
+        // Pokud proxy vrátila chybu od Groqu
+        if (data.error) {
+            throw new Error(data.error.message);
+        }
+
         aiBubble.innerText = data.choices[0].message.content;
         scrollToBottom();
     } catch (e) { 
         aiBubble.innerText = currentLang === 'cs' ? "Chyba: " + e.message : "Error: " + e.message;
-        // Pokud je klíč špatný, smažeme ho pro příště
-        if(e.message.includes("API key")) {
-            localStorage.removeItem('groq_key');
-            ZENTRIX_AI_API = "";
-        }
     }
 }
 
@@ -167,7 +148,6 @@ document.getElementById('clearAllBtn').onclick = () => {
 // Start & Keyboard
 document.getElementById('sendBtn').onclick = sendMessage;
 document.getElementById('newChatBtn').onclick = () => {
-    // Tlačítko pro nový chat vymaže klíč i historii (volitelné)
     if(confirm(currentLang === 'cs' ? "Začít nový chat?" : "Start new chat?")) {
         location.reload();
     }
@@ -186,4 +166,3 @@ document.getElementById('userInput').onkeydown = (e) => {
 };
 
 renderHistory();
-                    
