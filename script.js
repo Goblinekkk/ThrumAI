@@ -1,8 +1,3 @@
-/**
- * Thrum AI - script.js
- * Verze s připojením na Hugging Face Proxy
- */
-
 const PROXY_URL = "https://matydev-thrum-proxy.hf.space/chat";
 
 let currentModel = "llama-3.3-70b-versatile";
@@ -19,8 +14,8 @@ const toggleMenu = (open) => {
     overlay.style.display = open ? 'block' : 'none';
 };
 
-if(document.getElementById('menuBtn')) document.getElementById('menuBtn').onclick = () => toggleMenu(true);
-if(document.getElementById('closeBtn')) document.getElementById('closeBtn').onclick = () => toggleMenu(false);
+document.getElementById('menuBtn').onclick = () => toggleMenu(true);
+document.getElementById('closeBtn').onclick = () => toggleMenu(false);
 overlay.onclick = () => toggleMenu(false);
 
 // Jazyková logika
@@ -74,9 +69,7 @@ async function sendMessage() {
     try {
         const res = await fetch(PROXY_URL, {
             method: "POST",
-            headers: { 
-                "Content-Type": "application/json" 
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 messages: [
                     {role: "system", content: currentLang === 'cs' ? "Jsi Thrum AI. Odpovídej česky, stručně a inteligentně." : "You are Thrum AI. Be concise and smart."},
@@ -86,19 +79,11 @@ async function sendMessage() {
             })
         });
 
-        if (!res.ok) throw new Error("Server neodpovídá");
-
         const data = await res.json();
-        
-        // Pokud proxy vrátila chybu od Groqu
-        if (data.error) {
-            throw new Error(data.error.message);
-        }
-
         aiBubble.innerText = data.choices[0].message.content;
         scrollToBottom();
     } catch (e) { 
-        aiBubble.innerText = currentLang === 'cs' ? "Chyba: " + e.message : "Error: " + e.message;
+        aiBubble.innerText = "Chyba: Nepodařilo se spojit s jádrem."; 
     }
 }
 
@@ -133,7 +118,6 @@ function updateHistory(text) {
 
 function renderHistory() {
     const list = document.getElementById('chatHistoryList');
-    if(!list) return;
     const history = JSON.parse(localStorage.getItem('thrum_hist') || '[]');
     list.innerHTML = history.map(h => `<div class="hist-item" style="padding:15px 12px; border-bottom:1px solid #f4f4f5; font-size:0.85rem; color:#666; cursor:pointer;">${h}</div>`).join('');
 }
@@ -147,22 +131,9 @@ document.getElementById('clearAllBtn').onclick = () => {
 
 // Start & Keyboard
 document.getElementById('sendBtn').onclick = sendMessage;
-document.getElementById('newChatBtn').onclick = () => {
-    if(confirm(currentLang === 'cs' ? "Začít nový chat?" : "Start new chat?")) {
-        location.reload();
-    }
-};
-
-document.getElementById('userInput').oninput = function() { 
-    this.style.height = 'auto'; 
-    this.style.height = (this.scrollHeight) + 'px'; 
-};
-
-document.getElementById('userInput').onkeydown = (e) => { 
-    if(e.key === "Enter" && !e.shiftKey) { 
-        e.preventDefault(); 
-        sendMessage(); 
-    } 
-};
+document.getElementById('newChatBtn').onclick = () => location.reload();
+document.getElementById('userInput').oninput = function() { this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'; };
+document.getElementById('userInput').onkeydown = (e) => { if(e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } };
 
 renderHistory();
+               
