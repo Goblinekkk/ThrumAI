@@ -1,8 +1,10 @@
 /**
- * DŮLEŽITÉ: Na GitHubu uložte klíč do GitHub Secrets pod názvem ZENTRIX_AI_API.
- * Pro lokální testování můžete klíč vložit sem, ale soubor PŘIDEJTE DO .GITIGNORE!
+ * Thrum AI - script.js
+ * Zabezpečená verze pro GitHub Pages (využívá localStorage pro API klíč)
  */
-const ZENTRIX_AI_API = "REPLACE_ME_WITH_API_KEY";
+
+// Načtení klíče z paměti prohlížeče
+let ZENTRIX_AI_API = localStorage.getItem('groq_key') || "";
 
 let currentModel = "llama-3.3-70b-versatile";
 let currentLang = "cs";
@@ -18,8 +20,8 @@ const toggleMenu = (open) => {
     overlay.style.display = open ? 'block' : 'none';
 };
 
-document.getElementById('menuBtn').onclick = () => toggleMenu(true);
-document.getElementById('closeBtn').onclick = () => toggleMenu(false);
+if(document.getElementById('menuBtn')) document.getElementById('menuBtn').onclick = () => toggleMenu(true);
+if(document.getElementById('closeBtn')) document.getElementById('closeBtn').onclick = () => toggleMenu(false);
 overlay.onclick = () => toggleMenu(false);
 
 // Jazyková logika
@@ -55,10 +57,19 @@ async function sendMessage() {
     const inputField = document.getElementById('userInput');
     const text = inputField.value.trim();
     
-    // Kontrola klíče
-    if (!ZENTRIX_AI_API) {
-        alert("Chybí API klíč! Nastavte ZENTRIX_AI_API v kódu nebo prostředí.");
-        return;
+    // Kontrola klíče - pokud není, zeptáme se uživatele
+    if (!ZENTRIX_AI_API || ZENTRIX_AI_API.length < 10) {
+        const userKey = prompt(currentLang === 'cs' 
+            ? "Vlož svůj Groq API klíč (zůstane bezpečně jen ve tvém mobilu):" 
+            : "Enter your Groq API key (stored locally only):");
+        
+        if (userKey && userKey.startsWith("gsk_")) {
+            ZENTRIX_AI_API = userKey;
+            localStorage.setItem('groq_key', userKey);
+        } else {
+            alert(currentLang === 'cs' ? "Neplatný klíč!" : "Invalid key!");
+            return;
+        }
     }
 
     if (!text) return;
@@ -91,11 +102,22 @@ async function sendMessage() {
                 model: currentModel
             })
         });
+
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error?.message || "API Error");
+        }
+
         const data = await res.json();
         aiBubble.innerText = data.choices[0].message.content;
         scrollToBottom();
     } catch (e) { 
-        aiBubble.innerText = "Chyba: Nepodařilo se spojit s jádrem Thrum."; 
+        aiBubble.innerText = currentLang === 'cs' ? "Chyba: " + e.message : "Error: " + e.message;
+        // Pokud je klíč špatný, smažeme ho pro příště
+        if(e.message.includes("API key")) {
+            localStorage.removeItem('groq_key');
+            ZENTRIX_AI_API = "";
+        }
     }
 }
 
@@ -130,6 +152,7 @@ function updateHistory(text) {
 
 function renderHistory() {
     const list = document.getElementById('chatHistoryList');
+    if(!list) return;
     const history = JSON.parse(localStorage.getItem('thrum_hist') || '[]');
     list.innerHTML = history.map(h => `<div class="hist-item" style="padding:15px 12px; border-bottom:1px solid #f4f4f5; font-size:0.85rem; color:#666; cursor:pointer;">${h}</div>`).join('');
 }
@@ -143,9 +166,24 @@ document.getElementById('clearAllBtn').onclick = () => {
 
 // Start & Keyboard
 document.getElementById('sendBtn').onclick = sendMessage;
-document.getElementById('newChatBtn').onclick = () => location.reload();
-document.getElementById('userInput').oninput = function() { this.style.height = 'auto'; this.style.height = (this.scrollHeight) + 'px'; };
-document.getElementById('userInput').onkeydown = (e) => { if(e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } };
+document.getElementById('newChatBtn').onclick = () => {
+    // Tlačítko pro nový chat vymaže klíč i historii (volitelné)
+    if(confirm(currentLang === 'cs' ? "Začít nový chat?" : "Start new chat?")) {
+        location.reload();
+    }
+};
+
+document.getElementById('userInput').oninput = function() { 
+    this.style.height = 'auto'; 
+    this.style.height = (this.scrollHeight) + 'px'; 
+};
+
+document.getElementById('userInput').onkeydown = (e) => { 
+    if(e.key === "Enter" && !e.shiftKey) { 
+        e.preventDefault(); 
+        sendMessage(); 
+    } 
+};
 
 renderHistory();
-
+                    
